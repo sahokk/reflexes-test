@@ -1,102 +1,133 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>反射神経テスト</title>
   <style>
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       background: #f5f5f5;
-    }
-
-    h1 {
-      margin-top: 40px;
     }
 
     #game {
       width: 300px;
       height: 300px;
-      margin: 40px auto;
-      background: #d32f2f;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
+      background-color: #d32f2f;
       color: white;
       font-size: 20px;
-      cursor: pointer;
       user-select: none;
-      border-radius: 12px;
-      transition: background 0.2s;
+      cursor: pointer;
+      transition: background-color 0.05s linear;
     }
 
-    button {
+    #startBtn {
+      margin-top: 20px;
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background-color: #ffffffaa;
+      color: #000;
+      font-weight: bold;
     }
 
     #result {
       margin-top: 20px;
       font-size: 18px;
     }
+
+    .ready {
+      background-color: #2e7d32 !important;
+    }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <h1>反射神経テスト</h1>
-  <button id="startBtn">スタート</button>
 
-  <div id="game">スタートを押してください</div>
+  <div id="game">
+    <span id="gameText">スタートを押してください</span>
+    <button id="startBtn">スタート</button>
+  </div>
 
   <div id="result"></div>
 
   <script>
-    const startBtn = document.getElementById("startBtn");
-    const game = document.getElementById("game");
-    const result = document.getElementById("result");
+    const game = document.getElementById('game');
+    const gameText = document.getElementById('gameText');
+    const startBtn = document.getElementById('startBtn');
+    const result = document.getElementById('result');
 
-    let startTime = 0;
-    let timeoutId = null;
     let waiting = false;
     let ready = false;
+    let startTime = 0;
+    let timeoutId = null;
 
-    startBtn.addEventListener("click", () => {
-      result.textContent = "";
-      game.textContent = "待ってください...";
-      game.style.background = "#d32f2f";
+    function startGame(event) {
+      // クリックイベントの伝播を止める
+      event.stopPropagation();
+
+      // スタートボタンを非表示
+      startBtn.classList.add('hidden');
+
       waiting = true;
       ready = false;
+      result.textContent = '';
+      gameText.textContent = '待ってください...';
+      game.classList.remove('ready');
 
-      const delay = Math.random() * 3000 + 2000; // 2〜5秒
-
+      const delay = Math.random() * 3000 + 2000;
       timeoutId = setTimeout(() => {
-        game.style.background = "#2e7d32";
-        game.textContent = "クリック！";
-        startTime = performance.now();
-        ready = true;
+        requestAnimationFrame(() => {
+          game.classList.add('ready');
+          gameText.textContent = 'クリック！';
+          startTime = performance.now();
+          ready = true;
+        });
       }, delay);
-    });
+    }
 
-    game.addEventListener("click", () => {
+    function handleClick(event) {
+      // ゲーム開始前のボタンクリックは無視済み
       if (!waiting) return;
 
       if (!ready) {
+        // フライング
         clearTimeout(timeoutId);
         waiting = false;
-        game.textContent = "フライング！もう一度";
-        result.textContent = "";
+        gameText.textContent = 'フライング！もう一度';
+        game.classList.remove('ready');
+        startBtn.classList.remove('hidden'); // ボタン再表示
         return;
       }
 
       const reactionTime = Math.round(performance.now() - startTime);
       result.textContent = `あなたの反応時間：${reactionTime} ms`;
-      game.textContent = "スタートを押してください";
-      game.style.background = "#d32f2f";
+      gameText.textContent = 'スタートを押してください';
+      game.classList.remove('ready');
       waiting = false;
       ready = false;
-    });
+      startBtn.classList.remove('hidden'); // ボタン再表示
+    }
+
+    startBtn.addEventListener('click', startGame);
+    game.addEventListener('click', handleClick);
+    game.addEventListener('touchstart', handleClick);
   </script>
 </body>
 </html>
