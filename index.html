@@ -1,133 +1,174 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>反射神経テスト</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #f5f5f5;
-    }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>反射神経テスト</title>
+		<style>
+			body {
+				margin: 0;
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					sans-serif;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				height: 100vh;
+				background: #f5f5f5;
+			}
 
-    #game {
-      width: 300px;
-      height: 300px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      background-color: #d32f2f;
-      color: white;
-      font-size: 20px;
-      user-select: none;
-      cursor: pointer;
-      transition: background-color 0.05s linear;
-    }
+			#game {
+				width: 300px;
+				height: 300px;
+				border-radius: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-direction: column;
+				background-color: #d32f2f;
+				color: white;
+				font-size: 20px;
+				user-select: none;
+				cursor: pointer;
+				transition: background-color 0.05s linear;
+			}
 
-    #startBtn {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background-color: #ffffffaa;
-      color: #000;
-      font-weight: bold;
-    }
+			#result {
+				margin-top: 20px;
+				font-size: 18px;
+				text-align: center;
+			}
 
-    #result {
-      margin-top: 20px;
-      font-size: 18px;
-    }
+			#retryBtn {
+				margin-top: 20px;
+				padding: 10px 20px;
+				font-size: 16px;
+				cursor: pointer;
+				border: none;
+				border-radius: 6px;
+				background-color: #ffffffaa;
+				color: #000;
+				font-weight: bold;
+				display: none;
+			}
 
-    .ready {
-      background-color: #2e7d32 !important;
-    }
+			.ready {
+				background-color: #2e7d32 !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="game">
+			<span id="gameText">クリックしてスタート</span>
+		</div>
 
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
+		<div id="result"></div>
+		<button id="retryBtn">再挑戦</button>
 
-  <div id="game">
-    <span id="gameText">スタートを押してください</span>
-    <button id="startBtn">スタート</button>
-  </div>
+		<script>
+			const game = document.getElementById("game");
+			const gameText = document.getElementById("gameText");
+			const result = document.getElementById("result");
+			const retryBtn = document.getElementById("retryBtn");
 
-  <div id="result"></div>
+			let waiting = false;
+			let ready = false;
+			let startTime = 0;
+			let timeoutId = null;
+			let countdownId = null;
 
-  <script>
-    const game = document.getElementById('game');
-    const gameText = document.getElementById('gameText');
-    const startBtn = document.getElementById('startBtn');
-    const result = document.getElementById('result');
+			const reactionTimes = [];
+			const maxRounds = 3;
+			let currentRound = 0;
 
-    let waiting = false;
-    let ready = false;
-    let startTime = 0;
-    let timeoutId = null;
+			function startGame() {
+				retryBtn.style.display = "none"; // 再挑戦ボタン非表示
 
-    function startGame(event) {
-      // クリックイベントの伝播を止める
-      event.stopPropagation();
+				waiting = true;
+				ready = false;
+				gameText.textContent = "待ってください...";
+				game.classList.remove("ready");
 
-      // スタートボタンを非表示
-      startBtn.classList.add('hidden');
+				const delay = Math.random() * 3000 + 1000;
+				timeoutId = setTimeout(() => {
+					requestAnimationFrame(() => {
+						game.classList.add("ready");
+						gameText.textContent = "クリック！";
+						startTime = performance.now();
+						ready = true;
+					});
+				}, delay);
+			}
 
-      waiting = true;
-      ready = false;
-      result.textContent = '';
-      gameText.textContent = '待ってください...';
-      game.classList.remove('ready');
+			function startCountdown(nextRoundCallback) {
+				let count = 3;
+				gameText.textContent = `ラウンド${currentRound + 1}開始まで: ${count}`;
+				countdownId = setInterval(() => {
+					count--;
+					if (count > 0) {
+						gameText.textContent = `ラウンド${currentRound + 1}開始まで: ${count}`;
+					} else {
+						clearInterval(countdownId);
+						nextRoundCallback();
+					}
+				}, 1000);
+			}
 
-      const delay = Math.random() * 3000 + 2000;
-      timeoutId = setTimeout(() => {
-        requestAnimationFrame(() => {
-          game.classList.add('ready');
-          gameText.textContent = 'クリック！';
-          startTime = performance.now();
-          ready = true;
-        });
-      }, delay);
-    }
+			function handleClick(event) {
+				if (!waiting) return;
 
-    function handleClick(event) {
-      // ゲーム開始前のボタンクリックは無視済み
-      if (!waiting) return;
+				if (!ready) {
+					// フライング
+					clearTimeout(timeoutId);
+					waiting = false;
+					gameText.textContent = "フライング！次のラウンドへ";
+					game.classList.remove("ready");
+					startCountdown(() => startGame());
+					return;
+				}
 
-      if (!ready) {
-        // フライング
-        clearTimeout(timeoutId);
-        waiting = false;
-        gameText.textContent = 'フライング！もう一度';
-        game.classList.remove('ready');
-        startBtn.classList.remove('hidden'); // ボタン再表示
-        return;
-      }
+				const reactionTime = Math.round(performance.now() - startTime);
+				reactionTimes.push(reactionTime);
+				currentRound++;
 
-      const reactionTime = Math.round(performance.now() - startTime);
-      result.textContent = `あなたの反応時間：${reactionTime} ms`;
-      gameText.textContent = 'スタートを押してください';
-      game.classList.remove('ready');
-      waiting = false;
-      ready = false;
-      startBtn.classList.remove('hidden'); // ボタン再表示
-    }
+				// 各回の結果を表示
+				let html = "";
+				for (let i = 0; i < reactionTimes.length; i++) {
+					html += `Round ${i + 1}: ${reactionTimes[i]} ms<br>`;
+				}
+				result.innerHTML = html;
 
-    startBtn.addEventListener('click', startGame);
-    game.addEventListener('click', handleClick);
-    game.addEventListener('touchstart', handleClick);
-  </script>
-</body>
+				waiting = false;
+				ready = false;
+				game.classList.remove("ready");
+
+				if (currentRound < maxRounds) {
+					startCountdown(() => startGame());
+				} else {
+					// 平均を計算して表示
+					const sum = reactionTimes.reduce((a, b) => a + b, 0);
+					const avg = Math.round(sum / reactionTimes.length);
+					gameText.textContent = "測定完了！";
+					result.innerHTML += `<br>平均反応時間: ${avg} ms`;
+					currentRound = 0;
+					reactionTimes.length = 0;
+					retryBtn.style.display = "inline-block"; // 再挑戦ボタン表示
+				}
+			}
+
+			retryBtn.addEventListener("click", () => {
+				result.innerHTML = "";
+				startGame();
+			});
+
+			// 最初のスタート
+			gameText.addEventListener("click", () => {
+				if (currentRound === 0 && !waiting) startGame();
+			});
+
+			game.addEventListener("click", handleClick);
+			game.addEventListener("touchstart", handleClick);
+		</script>
+	</body>
 </html>
